@@ -628,82 +628,88 @@ class XMLSecurityDSig
      * @param null|array $arTransforms
      * @param null|array $options
      */
-    private function addRefInternal($sinfoNode, $node, $algorithm, $arTransforms=null, $options=null)
-    {
-        $prefix = null;
-        $prefix_ns = null;
-        $id_name = 'Id';
-        $overwrite_id  = true;
-        $force_uri = false;
+	private function addRefInternal($sinfoNode, $node, $algorithm, $arTransforms = null, $options = null)
+	{
+		$prefix = null;
+		$prefix_ns = null;
+		$id_name = 'Id';
+		$overwrite_id = true;
+		$force_uri = false;
 
-        if (is_array($options)) {
-            $prefix = empty($options['prefix']) ? null : $options['prefix'];
-            $prefix_ns = empty($options['prefix_ns']) ? null : $options['prefix_ns'];
-            $id_name = empty($options['id_name']) ? 'Id' : $options['id_name'];
-            $overwrite_id = !isset($options['overwrite']) ? true : (bool) $options['overwrite'];
-            $force_uri = !isset($options['force_uri']) ? false : (bool) $options['force_uri'];
-        }
+		if (is_array($options)) {
+			$prefix = empty($options['prefix']) ? null : $options['prefix'];
+			$prefix_ns = empty($options['prefix_ns']) ? null : $options['prefix_ns'];
+			$id_name = empty($options['id_name']) ? 'Id' : $options['id_name'];
+			$overwrite_id = !isset($options['overwrite']) ? true : (bool)$options['overwrite'];
+			$force_uri = !isset($options['force_uri']) ? false : (bool)$options['force_uri'];
+		}
 
-        $attname = $id_name;
-        if (! empty($prefix)) {
-            $attname = $prefix.':'.$attname;
-        }
+		$attname = $id_name;
+		if (!empty($prefix)) {
+			$attname = $prefix . ':' . $attname;
+		}
 
-        $refNode = $this->createNewSignNode('Reference');
-        $sinfoNode->appendChild($refNode);
+		$refNode = $this->createNewSignNode('Reference');
+		$sinfoNode->appendChild($refNode);
 
-        if (! $node instanceof DOMDocument) {
-            $uri = null;
-            if (! $overwrite_id) {
-                $uri = $prefix_ns ? $node->getAttributeNS($prefix_ns, $id_name) : $node->getAttribute($id_name);
-            }
-            if (empty($uri)) {
-                $uri = self::generateGUID();
-                $node->setAttributeNS($prefix_ns, $attname, $uri);
-            }
-            $refNode->setAttribute("URI", '#'.$uri);
-        } elseif ($force_uri) {
-            $refNode->setAttribute("URI", '');
-        }
+		if (!$node instanceof DOMDocument) {
+			$uri = null;
+			if (!$overwrite_id) {
+				$uri = $prefix_ns ? $node->getAttributeNS($prefix_ns, $id_name) : $node->getAttribute($id_name);
+			}
+			if (empty($uri)) {
+				$uri = self::generateGUID();
+				$node->setAttributeNS($prefix_ns, $attname, $uri);
+			}
+			$refNode->setAttribute('URI', '#' . $uri);
+		} elseif ($force_uri) {
+			$refNode->setAttribute('URI', '');
+		}
 
-        $transNodes = $this->createNewSignNode('Transforms');
-        $refNode->appendChild($transNodes);
+		$transNodes = $this->createNewSignNode('Transforms');
+		$refNode->appendChild($transNodes);
 
-        if (is_array($arTransforms)) {
-            foreach ($arTransforms AS $transform) {
-                $transNode = $this->createNewSignNode('Transform');
-                $transNodes->appendChild($transNode);
-                if (is_array($transform) &&
-                    (! empty($transform['http://www.w3.org/TR/1999/REC-xpath-19991116'])) &&
-                    (! empty($transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['query']))) {
-                    $transNode->setAttribute('Algorithm', 'http://www.w3.org/TR/1999/REC-xpath-19991116');
-                    $XPathNode = $this->createNewSignNode('XPath', $transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['query']);
-                    $transNode->appendChild($XPathNode);
-                    if (! empty($transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['namespaces'])) {
-                        foreach ($transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['namespaces'] AS $prefix => $namespace) {
-                            $XPathNode->setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:$prefix", $namespace);
-                        }
-                    }
-                } else {
-                    $transNode->setAttribute('Algorithm', $transform);
-                }
-            }
-        } elseif (! empty($this->canonicalMethod)) {
-            $transNode = $this->createNewSignNode('Transform');
-            $transNodes->appendChild($transNode);
-            $transNode->setAttribute('Algorithm', $this->canonicalMethod);
-        }
+		if (is_array($arTransforms)) {
+			foreach ($arTransforms as $transform) {
+				$transNode = $this->createNewSignNode('Transform');
+				$transNodes->appendChild($transNode);
+				if (is_array($transform) &&
+					(!empty($transform['http://www.w3.org/TR/1999/REC-xpath-19991116'])) &&
+					(!empty($transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['query']))) {
+					$transNode->setAttribute('Algorithm', 'http://www.w3.org/TR/1999/REC-xpath-19991116');
+					$XPathNode = $this->createNewSignNode('XPath', $transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['query']);
+					$transNode->appendChild($XPathNode);
+					if (!empty($transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['namespaces'])) {
+						foreach ($transform['http://www.w3.org/TR/1999/REC-xpath-19991116']['namespaces'] as $prefix => $namespace) {
+							$XPathNode->setAttributeNS('http://www.w3.org/2000/xmlns/', "xmlns:$prefix", $namespace);
+						}
+					}
+				} else {
+					$transNode->setAttribute('Algorithm', $transform);
+				}
+			}
+		} elseif (!empty($this->canonicalMethod)) {
+			$transNode = $this->createNewSignNode('Transform');
 
-        $canonicalData = $this->processTransforms($refNode, $node);
-        $digValue = $this->calculateDigest($algorithm, $canonicalData);
+			$inNode = $this->sigNode->ownerDocument->createElementNS(self::EXC_C14N, 'ec:InclusiveNamespaces');
+			$inNode->setAttribute('PrefixList', 'v1r3');
+			$transNode->appendChild($inNode);
 
-        $digestMethod = $this->createNewSignNode('DigestMethod');
-        $refNode->appendChild($digestMethod);
-        $digestMethod->setAttribute('Algorithm', $algorithm);
+			$transNodes->appendChild($transNode);
+			$transNode->setAttribute('Algorithm', $this->canonicalMethod);
 
-        $digestValue = $this->createNewSignNode('DigestValue', $digValue);
-        $refNode->appendChild($digestValue);
-    }
+		}
+
+		$canonicalData = $this->processTransforms($refNode, $node);
+		$digValue = $this->calculateDigest($algorithm, $canonicalData);
+
+		$digestMethod = $this->createNewSignNode('DigestMethod');
+		$refNode->appendChild($digestMethod);
+		$digestMethod->setAttribute('Algorithm', $algorithm);
+
+		$digestValue = $this->createNewSignNode('DigestValue', $digValue);
+		$refNode->appendChild($digestValue);
+	}
 
     /**
      * @param DOMDocument $node
