@@ -224,32 +224,36 @@ class XMLSecurityDSig
      * @param string $method
      * @throws Exception
      */
-    public function setCanonicalMethod($method)
-    {
-        switch ($method) {
-            case 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315':
-            case 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments':
-            case 'http://www.w3.org/2001/10/xml-exc-c14n#':
-            case 'http://www.w3.org/2001/10/xml-exc-c14n#WithComments':
-                $this->canonicalMethod = $method;
-                break;
-            default:
-                throw new Exception('Invalid Canonical Method');
-        }
-        if ($xpath = $this->getXPathObj()) {
-            $query = './'.$this->searchpfx.':SignedInfo';
-            $nodeset = $xpath->query($query, $this->sigNode);
-            if ($sinfo = $nodeset->item(0)) {
-                $query = './'.$this->searchpfx.'CanonicalizationMethod';
-                $nodeset = $xpath->query($query, $sinfo);
-                if (! ($canonNode = $nodeset->item(0))) {
-                    $canonNode = $this->createNewSignNode('CanonicalizationMethod');
-                    $sinfo->insertBefore($canonNode, $sinfo->firstChild);
-                }
-                $canonNode->setAttribute('Algorithm', $this->canonicalMethod);
-            }
-        }
-    }
+	public function setCanonicalMethod($method)
+	{
+		switch ($method) {
+			case 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315':
+			case 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments':
+			case 'http://www.w3.org/2001/10/xml-exc-c14n#':
+			case 'http://www.w3.org/2001/10/xml-exc-c14n#WithComments':
+				$this->canonicalMethod = $method;
+				break;
+			default:
+				throw new Exception('Invalid Canonical Method');
+		}
+		if ($xpath = $this->getXPathObj()) {
+			$query = './'.$this->searchpfx.':SignedInfo';
+			$nodeset = $xpath->query($query, $this->sigNode);
+			if ($sinfo = $nodeset->item(0)) {
+				$query = './'.$this->searchpfx.'CanonicalizationMethod';
+				$nodeset = $xpath->query($query, $sinfo);
+				if (! ($canonNode = $nodeset->item(0))) {
+					$canonNode = $this->createNewSignNode('CanonicalizationMethod');
+					$inNode = $this->sigNode->ownerDocument->createElementNS(self::EXC_C14N, 'ec:InclusiveNamespaces');
+					$inNode->setAttribute('PrefixList', 'soapenv v1r3');
+					$canonNode->appendChild($inNode);
+					$sinfo->insertBefore($canonNode, $sinfo->firstChild);
+				}
+				$canonNode->setAttribute('Algorithm', $this->canonicalMethod);
+
+			}
+		}
+	}
 
     /**
      * @param DOMNode $node
